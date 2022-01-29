@@ -1,0 +1,25 @@
+gitea:
+  image: gitea/gitea:latest
+  append:
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    volumes:
+      - ./data:/data
+    ports:
+      - "3000:3000"
+      - "2222:22"
+  url: git.rubedo.cloud @ 3000
+  expose: 3000
+asdf:
+  image: containous/whoami
+  url: asdf.rubedo.cloud
+whoami2:
+  image: containous/whoami
+  url: git.rubedo.cloud /test
+  append:
+    restart: unless-stopped
+    labels:
+      - "testlabel=true"
+blah:
+  image: containous/whoami # not exposed to traefik at all

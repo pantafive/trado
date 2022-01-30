@@ -4,12 +4,12 @@ networks:
   default:
     driver: bridge
   traefik:
-    external:
-      name: traefik
+    external: true
+    name: traefik
 
 services:
   traefik:
-    image: traefik@latest
+    image: traefik
     networks:
       - default
       - traefik

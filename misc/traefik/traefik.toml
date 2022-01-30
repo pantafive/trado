@@ -20,7 +20,7 @@
 
 [certificatesResolvers]
   [certificatesResolvers.default.acme]
-    email = <EMAIL>
+    email = bobuk@rubedo.cloud
     storage = "/letsencrypt/acme.json"
     [certificatesResolvers.default.acme.tlsChallenge]
 

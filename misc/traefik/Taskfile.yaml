@@ -1,0 +1,19 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task: down
+      - task: up
+      - task: log
+  down:
+    cmds:
+      - docker compose down
+  up:
+    cmds:
+      - docker compose up -d
+  log:
+    cmds:
+      - docker compose logs -f

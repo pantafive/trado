@@ -6,8 +6,12 @@ tasks:
   default:
     cmds:
       - task: down
+      - task: trado
       - task: up
       - task: log
+  trado:
+    cmds:
+      - trado || echo "done"
   down:
     cmds:
       - docker compose down

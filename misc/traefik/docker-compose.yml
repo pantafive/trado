@@ -20,5 +20,6 @@ services:
     volumes:
       - ./letsencrypt:/letsencrypt
       - ./traefik.toml:/traefik.toml
+      - ./access.log:/access.log
       - /var/run/docker.sock:/var/run/docker.sock
 

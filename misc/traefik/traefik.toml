@@ -1,5 +1,5 @@
 [log]
-  level = "DEBUG"
+  level = "INFO"
 
 [providers.docker]
   exposedByDefault = false
@@ -9,6 +9,10 @@
 [api]
   dashboard = true
   debug = true
+
+[accessLog]
+  filePath = "/access.log"
+  format = "CLF"
 
 [entryPoints]
   [entryPoints.web]
@@ -20,7 +24,7 @@
 
 [certificatesResolvers]
   [certificatesResolvers.default.acme]
-    email = bobuk@rubedo.cloud
+    email = "bobuk@rubedo.cloud"
     storage = "/letsencrypt/acme.json"
     [certificatesResolvers.default.acme.tlsChallenge]
 

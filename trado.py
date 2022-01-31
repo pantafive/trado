@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-import os.path
-
+import pathlib
 import yaml
-import sys, os
+import sys
 from dataclasses import dataclass, field, asdict
 
 
@@ -103,21 +102,26 @@ class Trado:
 
 
 def main():
-    if not os.path.isfile(SOURCE):
+    srcpath = pathlib.Path(SOURCE)
+    if not srcpath.exists():
         sys.stderr.write(f"Services: {SOURCE} not found\n")
         sys.exit(-1)
     output = OUTPUT
     if sys.argv[1:]:
         output = sys.argv[1]
+    dstpath = pathlib.Path(output) if output != '--' else '--'
+    if dstpath.exists() and dstpath.stat().st_mtime > srcpath.stat().st_mtime:
+        sys.stderr.write(f"Services: {output} is same or newer than {SOURCE}, stop.\n")
+        sys.exit(0)
     dc = DockerCompose()
-    with open(SOURCE, "r") as f:
+    with open(srcpath, "r") as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
         for service in data.keys():
             tr = Trado.from_dict(service, data[service])
             dc.services[service] = tr.to_dict()
-    if output == '-':
+    if dstpath == '-':
         print(dc.to_yaml())
     else:
-        with open(output, "w") as f:
+        with open(dstpath, "w") as f:
             f.write(dc.to_yaml())
-        print(f"{output} file generated")
+        print(f"{dstpath} file generated")

@@ -2,6 +2,7 @@
 import pathlib
 import yaml
 import sys
+import subprocess
 from dataclasses import dataclass, field, asdict
 
 
@@ -35,6 +36,7 @@ class Trado:
     url_prefix: str = ""
     url_expose: int = 0
     labels: list[str] = field(default_factory=list)
+    doppler: bool = False
     append: dict = field(default_factory=dict)
 
     @staticmethod
@@ -49,8 +51,8 @@ class Trado:
                 gen.url_host, gen.url_prefix = [x.strip() for x in gen.url_host.split("/", 1)]
                 gen.url_prefix = "/" + gen.url_prefix
         gen.container_name = tr.get("container_name", "")
+        gen.doppler = tr.get("doppler", False)
         gen.append = tr.get("append", {})
-
         return gen
 
     def to_dict(self) -> dict:
@@ -80,6 +82,13 @@ class Trado:
                 labels.append(f"http.routers.{self.name}.tls.certresolver=default")
             for line in labels:
                 dt["labels"].append(f"traefik.{line}")
+        if self.doppler:
+            doppler = subprocess.run("doppler secrets --json", shell=True, capture_output=True)
+            if doppler.returncode == 0:
+                dt["environment"] = [x for x in yaml.safe_load(doppler.stdout).keys() if not x.startswith('DOPPLER')]
+            else:
+                raise TradoException("doppler secrets --json failed")
+            del dt["doppler"]
         if self.append:
             for k,v in self.append.items():
                 if k in dt:
@@ -118,7 +127,11 @@ def main():
         data = yaml.load(f, Loader=yaml.FullLoader)
         for service in data.keys():
             tr = Trado.from_dict(service, data[service])
-            dc.services[service] = tr.to_dict()
+            try:
+                dc.services[service] = tr.to_dict()
+            except TradoException as e:
+                sys.stderr.write(f"Services: {service}: {e}\n")
+                sys.exit(-5)
     if dstpath == '-':
         print(dc.to_yaml())
     else:

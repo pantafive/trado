@@ -11,6 +11,7 @@ gitea:
       - "2222:22"
   url: git.rubedo.cloud @ 3000
   expose: 3000
+  doppler: true
 asdf:
   image: containous/whoami
   url: asdf.rubedo.cloud

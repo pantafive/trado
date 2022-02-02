@@ -23,6 +23,8 @@ class DockerCompose:
     def to_yaml(self) -> str:
         res = []
         for block in "version,services,networks".split(","):
+            if block == 'networks' and self.networks == {}:
+                continue
             res.append(yaml.dump({block: getattr(self, block)}, default_flow_style=False))
         return "\n".join(res)
 
@@ -61,46 +63,11 @@ class Trado:
         del dt["name"]
 
         if self.url_host:
-            dt["networks"] = ["traefik"]
-            labels: list[str] = ["enable=true"]
-
-            if self.url_expose:
-                labels.append(f"http.services.{self.name}.loadbalancer.server.port={self.url_expose}")
-
-            rule = f"Host(`{self.url_host}`)" + (f" && PathPrefix(`{self.url_prefix}`)" if self.url_prefix else "")
-            labels.append(f"http.routers.{self.name}.rule={rule}")
-            labels.append(f"http.routers.{self.name}.entrypoints=web-secure")
-            labels.append(f"http.routers.{self.name}.tls=true")
-            if self.url_prefix:
-                labels.append(f"http.middlewares.{self.name}-pathfix.stripprefix.prefixes={self.url_prefix}")
-                labels.append(f"http.routers.{self.name}.middlewares={self.name}-pathfix@docker")
-            else:
-                labels.append(f"http.middlewares.{self.name}-https.redirectscheme.scheme=https")
-                labels.append(f"http.routers.{self.name}-http.entrypoints=web")
-                labels.append(f"http.routers.{self.name}-http.rule={rule}")
-                labels.append(f"http.routers.{self.name}-http.middlewares={self.name}-https@docker")
-                labels.append(f"http.routers.{self.name}.tls.certresolver=default")
-            for line in labels:
-                dt["labels"].append(f"traefik.{line}")
+            self.add_network_labels(dt)
         if self.doppler:
-            doppler = subprocess.run("doppler secrets --json", shell=True, capture_output=True)
-            if doppler.returncode == 0:
-                dt["environment"] = [x for x in yaml.safe_load(doppler.stdout).keys() if not x.startswith('DOPPLER')]
-            else:
-                raise TradoException("doppler secrets --json failed")
-            del dt["doppler"]
+            self.add_doppler(dt)
         if self.append:
-            for k,v in self.append.items():
-                if k in dt:
-                    if type(dt[k]) is list:
-                        dt[k] = dt[k] + v
-                    elif type(dt[k]) is dict:
-                        dt[k].update(v)
-                    else:
-                        raise TradoException(f"{k} is not a list or map, key confilict")
-                else:
-                    dt[k] = v
-            del dt["append"]
+            self.add_appendex(dt)
         for k, v in dt.items():
             if v:
                 res[k] = v
@@ -108,6 +75,48 @@ class Trado:
             if k in res:
                 del res[k]
         return res
+
+    def add_network_labels(self, dt):
+        dt["networks"] = ["traefik"]
+        labels: list[str] = ["enable=true"]
+        if self.url_expose:
+            labels.append(f"http.services.{self.name}.loadbalancer.server.port={self.url_expose}")
+        rule = f"Host(`{self.url_host}`)" + (f" && PathPrefix(`{self.url_prefix}`)" if self.url_prefix else "")
+        labels.append(f"http.routers.{self.name}.rule={rule}")
+        labels.append(f"http.routers.{self.name}.entrypoints=web-secure")
+        labels.append(f"http.routers.{self.name}.tls=true")
+        if self.url_prefix:
+            labels.append(f"http.middlewares.{self.name}-pathfix.stripprefix.prefixes={self.url_prefix}")
+            labels.append(f"http.routers.{self.name}.middlewares={self.name}-pathfix@docker")
+        else:
+            labels.append(f"http.middlewares.{self.name}-https.redirectscheme.scheme=https")
+            labels.append(f"http.routers.{self.name}-http.entrypoints=web")
+            labels.append(f"http.routers.{self.name}-http.rule={rule}")
+            labels.append(f"http.routers.{self.name}-http.middlewares={self.name}-https@docker")
+            labels.append(f"http.routers.{self.name}.tls.certresolver=default")
+        for line in labels:
+            dt["labels"].append(f"traefik.{line}")
+
+    def add_doppler(self, dt):
+        doppler = subprocess.run("doppler secrets --json", shell=True, capture_output=True)
+        if doppler.returncode == 0:
+            dt["environment"] = [x for x in yaml.safe_load(doppler.stdout).keys() if not x.startswith('DOPPLER')]
+        else:
+            raise TradoException("doppler secrets --json failed")
+        del dt["doppler"]
+
+    def add_appendex(self, dt):
+        for k, v in self.append.items():
+            if k in dt:
+                if type(dt[k]) is list:
+                    dt[k] = dt[k] + v
+                elif type(dt[k]) is dict:
+                    dt[k].update(v)
+                else:
+                    raise TradoException(f"{k} is not a list or map, key confilict")
+            else:
+                dt[k] = v
+        del dt["append"]
 
 
 def main():
@@ -123,6 +132,7 @@ def main():
         sys.stderr.write(f"Services: {output} is same or newer than {SOURCE}, stop.\n")
         sys.exit(0)
     dc = DockerCompose()
+    traefik_needed = False
     with open(srcpath, "r") as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
         for service in data.keys():
@@ -132,6 +142,11 @@ def main():
             except TradoException as e:
                 sys.stderr.write(f"Services: {service}: {e}\n")
                 sys.exit(-5)
+            if net := dc.services[service].get("networks", None):
+                if "traefik" in net:
+                    traefik_needed = True
+        if not traefik_needed:
+            dc.networks = {}
     if dstpath == '-':
         print(dc.to_yaml())
     else:

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trado"
-version = "0.1.3"
+version = "0.1.4"
 description = "Dumb and dirty docker-compose files generator for traefik exposing"
 authors = ["Grigory Bakunov <thebobuk@ya.ru>"]
 license = "The Unlicense"

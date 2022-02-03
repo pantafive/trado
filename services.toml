@@ -1,0 +1,26 @@
+[gitea]
+image = "gitea/gitea:latest"
+public = "git.rubedo.cloud @ 3000"
+doppler = true
+wathctower = true
+volumes = ["./data:/data"]
+
+ports = ["3000:3000", "2222:22"]
+    [gitea.envs]
+    USER_UID = 1000
+    USER_GID = 1000
+    TEST = "test"
+
+[asdf]
+image = "containous/whoami"
+public = "asdf.rubedo.cloud"
+restart = "unless-stopped"
+
+[whoami2]
+image = "containous/whoami"
+public = "git.rubedo.cloud /test"
+restart = "unless-stopped"
+labels = "testlabel=true"
+
+[blah]
+image = "containous/whoami"

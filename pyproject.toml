@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "trado"
-version = "0.1.4"
+version = "0.2.1"
 description = "Dumb and dirty docker-compose files generator for traefik exposing"
 authors = ["Grigory Bakunov <thebobuk@ya.ru>"]
 license = "The Unlicense"
@@ -9,6 +9,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.9"
 PyYAML = "^6.0"
+tomli = "^2.0.0"
 
 [tool.poetry.scripts]
 trado = "trado:main"

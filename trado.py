@@ -77,16 +77,27 @@ class Trado:
                 self.url_prefix = "/" + self.url_prefix
 
     @staticmethod
-    def get_complex_by_type(tr: dict, element: str) -> list:
+    def get_complex_by_type(tr: dict, element: str, flat: bool = False) -> list:
         item = tr.get(element, [])
         if type(item) is list:
             return item
         elif type(item) is dict:
-            return [f"{k}={v}" for k, v in item.items()]
+            return [f"{k}={v}" for k, v in Trado.dict_to_dotted_notation(item).items()]
         elif type(item) is str:
             return [item]
         else:
             raise TradoException(f"`{element}` is not a list or map, key confilict")
+
+    @staticmethod
+    def dict_to_dotted_notation(d: dict) -> dict:
+        res = {}
+        for k, v in d.items():
+            if isinstance(v, dict):
+                for k2, v2 in Trado.dict_to_dotted_notation(v).items():
+                    res[f"{k}.{k2}"] = v2
+            else:
+                res[k] = v
+        return res
 
     def to_dict(self) -> dict:
         dt = asdict(self)
